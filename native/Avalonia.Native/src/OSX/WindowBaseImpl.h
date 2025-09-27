@@ -74,6 +74,8 @@ public:
             void *sourceHandle) override;
 
     virtual HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode) override;
+
+    virtual HRESULT SetMacOSBlur(AvnMacOSBlurMaterial material, AvnMacOSBlurState state, AvnMacOSBlurBlendingMode blendingMode) override;
                            
     virtual bool IsModal();
 

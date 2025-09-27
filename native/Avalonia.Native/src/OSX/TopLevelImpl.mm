@@ -258,6 +258,12 @@ HRESULT TopLevelImpl::SetTransparencyMode(AvnWindowTransparencyMode mode) {
     return S_OK;
 }
 
+HRESULT TopLevelImpl::SetMacOSBlur(AvnMacOSBlurMaterial material, AvnMacOSBlurState state, AvnMacOSBlurBlendingMode blendingMode) {
+    START_COM_CALL;
+
+    return S_OK;
+}
+
 HRESULT TopLevelImpl::GetCurrentDisplayId (CGDirectDisplayID* ret) {
     START_COM_CALL;
 

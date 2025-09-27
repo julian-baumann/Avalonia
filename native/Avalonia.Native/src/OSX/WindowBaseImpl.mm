@@ -21,6 +21,87 @@
 
 @class AutoFitContentView;
 
+static NSVisualEffectMaterial ToMaterial(AvnMacOSBlurMaterial material)
+{
+    switch (material)
+    {
+        case MacOSBlurMaterialAppearanceBased:
+            return NSVisualEffectMaterialAppearanceBased;
+        case MacOSBlurMaterialLight:
+            return NSVisualEffectMaterialLight;
+        case MacOSBlurMaterialDark:
+            return NSVisualEffectMaterialDark;
+        case MacOSBlurMaterialTitlebar:
+            return NSVisualEffectMaterialTitlebar;
+        case MacOSBlurMaterialSelection:
+            return NSVisualEffectMaterialSelection;
+        case MacOSBlurMaterialMenu:
+            return NSVisualEffectMaterialMenu;
+        case MacOSBlurMaterialPopover:
+            return NSVisualEffectMaterialPopover;
+        case MacOSBlurMaterialSidebar:
+            return NSVisualEffectMaterialSidebar;
+        case MacOSBlurMaterialMediumLight:
+            return NSVisualEffectMaterialMediumLight;
+        case MacOSBlurMaterialUltraDark:
+            return NSVisualEffectMaterialUltraDark;
+        case MacOSBlurMaterialHeaderView:
+            return NSVisualEffectMaterialHeaderView;
+        case MacOSBlurMaterialSheet:
+            return NSVisualEffectMaterialSheet;
+        case MacOSBlurMaterialWindowBackground:
+            return NSVisualEffectMaterialWindowBackground;
+        case MacOSBlurMaterialHudWindow:
+            return NSVisualEffectMaterialHUDWindow;
+        case MacOSBlurMaterialFullScreenUI:
+            return NSVisualEffectMaterialFullScreenUI;
+        case MacOSBlurMaterialToolTip:
+            return NSVisualEffectMaterialToolTip;
+        case MacOSBlurMaterialContentBackground:
+            return NSVisualEffectMaterialContentBackground;
+        case MacOSBlurMaterialUnderWindowBackground:
+            if (@available(macOS 10.14, *))
+                return NSVisualEffectMaterialUnderWindowBackground;
+            return NSVisualEffectMaterialLight;
+        case MacOSBlurMaterialUnderPageBackground:
+            if (@available(macOS 10.14, *))
+                return NSVisualEffectMaterialUnderPageBackground;
+            return NSVisualEffectMaterialLight;
+        case MacOSBlurMaterialGlass:
+#ifdef NSVisualEffectMaterialGlass
+            if (@available(macOS 10.14, *))
+                return NSVisualEffectMaterialGlass;
+#endif
+            return NSVisualEffectMaterialUnderWindowBackground;
+    }
+
+    return NSVisualEffectMaterialAppearanceBased;
+}
+
+static NSVisualEffectState ToState(AvnMacOSBlurState state)
+{
+    switch (state)
+    {
+        case MacOSBlurStateActive:
+            return NSVisualEffectStateActive;
+        case MacOSBlurStateInactive:
+            return NSVisualEffectStateInactive;
+        default:
+            return NSVisualEffectStateFollowsWindowActiveState;
+    }
+}
+
+static NSVisualEffectBlendingMode ToBlending(AvnMacOSBlurBlendingMode blendingMode)
+{
+    switch (blendingMode)
+    {
+        case MacOSBlurBlendingModeWithinWindow:
+            return NSVisualEffectBlendingModeWithinWindow;
+        default:
+            return NSVisualEffectBlendingModeBehindWindow;
+    }
+}
+
 WindowBaseImpl::~WindowBaseImpl() {
     View = nullptr;
     Window = nullptr;
@@ -391,6 +472,22 @@ HRESULT WindowBaseImpl::SetTransparencyMode(AvnWindowTransparencyMode mode) {
     [StandardContainer ShowBlur: mode == Blur];
 
     return S_OK;
+}
+
+HRESULT WindowBaseImpl::SetMacOSBlur(AvnMacOSBlurMaterial material, AvnMacOSBlurState state, AvnMacOSBlurBlendingMode blendingMode) {
+    START_COM_CALL;
+
+    @autoreleasepool
+    {
+        if (StandardContainer != nullptr)
+        {
+            [StandardContainer UpdateBlurWithMaterial:ToMaterial(material)
+                                                 state:ToState(state)
+                                              blending:ToBlending(blendingMode)];
+        }
+
+        return S_OK;
+    }
 }
 
 HRESULT WindowBaseImpl::SetFrameThemeVariant(AvnPlatformThemeVariant variant) {

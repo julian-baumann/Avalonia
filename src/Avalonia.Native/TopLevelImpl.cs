@@ -61,7 +61,7 @@ internal class MacOSTopLevelHandle : IPlatformHandle, IMacOSTopLevelPlatformHand
     }
 }
 
-internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
+internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface, IMacOSWindowVibrancy
 {
     protected IInputRoot? _inputRoot;
     private NativeControlHostImpl? _nativeControlHost;
@@ -78,6 +78,10 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
     private Size _savedLogicalSize;
     private double _savedScaling;
     private WindowTransparencyLevel _transparencyLevel = WindowTransparencyLevel.None;
+    private WindowTransparencyLevel? _activeMacBlurLevel;
+    private MacOSVibrancyMaterial? _macVibrancyMaterial;
+    private MacOSVibrancyState _macVibrancyState = MacOSVibrancyState.FollowsWindowActiveState;
+    private MacOSVibrancyBlendingMode _macVibrancyBlendingMode = MacOSVibrancyBlendingMode.BehindWindow;
 
     protected MacOSTopLevelHandle? _handle;
 
@@ -306,6 +310,18 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
         return new PopupImpl(Factory, this);
     }
 
+    public void SetVibrancy(MacOSVibrancyMaterial? material, MacOSVibrancyState state, MacOSVibrancyBlendingMode blendingMode)
+    {
+        _macVibrancyMaterial = material;
+        _macVibrancyState = state;
+        _macVibrancyBlendingMode = blendingMode;
+
+        if (_activeMacBlurLevel.HasValue)
+        {
+            ApplyMacOSBlur();
+        }
+    }
+
     public void SetTransparencyLevelHint(IReadOnlyList<WindowTransparencyLevel> transparencyLevels)
     {
         foreach (var level in transparencyLevels)
@@ -316,11 +332,21 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
                 mode = AvnWindowTransparencyMode.Opaque;
             if (level == WindowTransparencyLevel.Transparent)
                 mode = AvnWindowTransparencyMode.Transparent;
-            else if (level == WindowTransparencyLevel.AcrylicBlur)
+            else if (level == WindowTransparencyLevel.Blur || level == WindowTransparencyLevel.AcrylicBlur)
                 mode = AvnWindowTransparencyMode.Blur;
 
             if (mode.HasValue && level != TransparencyLevel)
             {
+                if (mode == AvnWindowTransparencyMode.Blur)
+                {
+                    _activeMacBlurLevel = level;
+                    ApplyMacOSBlur();
+                }
+                else
+                {
+                    _activeMacBlurLevel = null;
+                }
+
                 Native?.SetTransparencyMode(mode.Value);
                 TransparencyLevel = level;
                 return;
@@ -333,7 +359,76 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
             Native?.SetTransparencyMode(AvnWindowTransparencyMode.Opaque);
             TransparencyLevel = WindowTransparencyLevel.None;
         }
+
+        _activeMacBlurLevel = null;
     }
+
+    private void ApplyMacOSBlur()
+    {
+        if (_activeMacBlurLevel is null)
+        {
+            return;
+        }
+
+        if (Native is null)
+        {
+            return;
+        }
+
+        var material = _macVibrancyMaterial.HasValue
+            ? ConvertMaterial(_macVibrancyMaterial.Value)
+            : GetDefaultMaterialForLevel(_activeMacBlurLevel.Value);
+
+        Native.SetMacOSBlur(
+            material,
+            ConvertState(_macVibrancyState),
+            ConvertBlendingMode(_macVibrancyBlendingMode));
+    }
+
+    private static AvnMacOSBlurMaterial GetDefaultMaterialForLevel(WindowTransparencyLevel level) =>
+        level == WindowTransparencyLevel.AcrylicBlur
+            ? AvnMacOSBlurMaterial.MacOSBlurMaterialUnderWindowBackground
+            : AvnMacOSBlurMaterial.MacOSBlurMaterialAppearanceBased;
+
+    private static AvnMacOSBlurMaterial ConvertMaterial(MacOSVibrancyMaterial material) => material switch
+    {
+        MacOSVibrancyMaterial.AppearanceBased => AvnMacOSBlurMaterial.MacOSBlurMaterialAppearanceBased,
+        MacOSVibrancyMaterial.Light => AvnMacOSBlurMaterial.MacOSBlurMaterialLight,
+        MacOSVibrancyMaterial.Dark => AvnMacOSBlurMaterial.MacOSBlurMaterialDark,
+        MacOSVibrancyMaterial.Titlebar => AvnMacOSBlurMaterial.MacOSBlurMaterialTitlebar,
+        MacOSVibrancyMaterial.Selection => AvnMacOSBlurMaterial.MacOSBlurMaterialSelection,
+        MacOSVibrancyMaterial.Menu => AvnMacOSBlurMaterial.MacOSBlurMaterialMenu,
+        MacOSVibrancyMaterial.Popover => AvnMacOSBlurMaterial.MacOSBlurMaterialPopover,
+        MacOSVibrancyMaterial.Sidebar => AvnMacOSBlurMaterial.MacOSBlurMaterialSidebar,
+        MacOSVibrancyMaterial.MediumLight => AvnMacOSBlurMaterial.MacOSBlurMaterialMediumLight,
+        MacOSVibrancyMaterial.UltraDark => AvnMacOSBlurMaterial.MacOSBlurMaterialUltraDark,
+        MacOSVibrancyMaterial.HeaderView => AvnMacOSBlurMaterial.MacOSBlurMaterialHeaderView,
+        MacOSVibrancyMaterial.Sheet => AvnMacOSBlurMaterial.MacOSBlurMaterialSheet,
+        MacOSVibrancyMaterial.WindowBackground => AvnMacOSBlurMaterial.MacOSBlurMaterialWindowBackground,
+        MacOSVibrancyMaterial.HudWindow => AvnMacOSBlurMaterial.MacOSBlurMaterialHudWindow,
+        MacOSVibrancyMaterial.FullScreenUI => AvnMacOSBlurMaterial.MacOSBlurMaterialFullScreenUI,
+        MacOSVibrancyMaterial.ToolTip => AvnMacOSBlurMaterial.MacOSBlurMaterialToolTip,
+        MacOSVibrancyMaterial.ContentBackground => AvnMacOSBlurMaterial.MacOSBlurMaterialContentBackground,
+        MacOSVibrancyMaterial.UnderWindowBackground => AvnMacOSBlurMaterial.MacOSBlurMaterialUnderWindowBackground,
+        MacOSVibrancyMaterial.UnderPageBackground => AvnMacOSBlurMaterial.MacOSBlurMaterialUnderPageBackground,
+        MacOSVibrancyMaterial.Glass => AvnMacOSBlurMaterial.MacOSBlurMaterialGlass,
+        _ => AvnMacOSBlurMaterial.MacOSBlurMaterialAppearanceBased
+    };
+
+    private static AvnMacOSBlurState ConvertState(MacOSVibrancyState state) => state switch
+    {
+        MacOSVibrancyState.FollowsWindowActiveState => AvnMacOSBlurState.MacOSBlurStateFollowsWindowActiveState,
+        MacOSVibrancyState.Active => AvnMacOSBlurState.MacOSBlurStateActive,
+        MacOSVibrancyState.Inactive => AvnMacOSBlurState.MacOSBlurStateInactive,
+        _ => AvnMacOSBlurState.MacOSBlurStateFollowsWindowActiveState
+    };
+
+    private static AvnMacOSBlurBlendingMode ConvertBlendingMode(MacOSVibrancyBlendingMode blendingMode) => blendingMode switch
+    {
+        MacOSVibrancyBlendingMode.BehindWindow => AvnMacOSBlurBlendingMode.MacOSBlurBlendingModeBehindWindow,
+        MacOSVibrancyBlendingMode.WithinWindow => AvnMacOSBlurBlendingMode.MacOSBlurBlendingModeWithinWindow,
+        _ => AvnMacOSBlurBlendingMode.MacOSBlurBlendingModeBehindWindow
+    };
 
     public virtual object? TryGetFeature(Type featureType)
     {
@@ -355,6 +450,11 @@ internal class TopLevelImpl : ITopLevelImpl, IFramebufferPlatformSurface
         if (featureType == typeof(IClipboard))
         {
             return AvaloniaLocator.Current.GetRequiredService<IClipboard>();
+        }
+
+        if (featureType == typeof(IMacOSWindowVibrancy))
+        {
+            return this;
         }
 
         if (featureType == typeof(IScreenImpl))

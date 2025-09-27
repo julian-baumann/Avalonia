@@ -660,6 +660,43 @@ enum AvnWindowTransparencyMode
     Blur
 }
 
+enum AvnMacOSBlurMaterial
+{
+    MacOSBlurMaterialAppearanceBased,
+    MacOSBlurMaterialLight,
+    MacOSBlurMaterialDark,
+    MacOSBlurMaterialTitlebar,
+    MacOSBlurMaterialSelection,
+    MacOSBlurMaterialMenu,
+    MacOSBlurMaterialPopover,
+    MacOSBlurMaterialSidebar,
+    MacOSBlurMaterialMediumLight,
+    MacOSBlurMaterialUltraDark,
+    MacOSBlurMaterialHeaderView,
+    MacOSBlurMaterialSheet,
+    MacOSBlurMaterialWindowBackground,
+    MacOSBlurMaterialHudWindow,
+    MacOSBlurMaterialFullScreenUI,
+    MacOSBlurMaterialToolTip,
+    MacOSBlurMaterialContentBackground,
+    MacOSBlurMaterialUnderWindowBackground,
+    MacOSBlurMaterialUnderPageBackground,
+    MacOSBlurMaterialGlass
+}
+
+enum AvnMacOSBlurState
+{
+    MacOSBlurStateFollowsWindowActiveState,
+    MacOSBlurStateActive,
+    MacOSBlurStateInactive
+}
+
+enum AvnMacOSBlurBlendingMode
+{
+    MacOSBlurBlendingModeBehindWindow,
+    MacOSBlurBlendingModeWithinWindow
+}
+
 enum AvnPlatformThemeVariant
 {
     Light,
@@ -733,6 +770,7 @@ interface IAvnTopLevel : IUnknown
      
      HRESULT GetInputMethod(IAvnTextInputMethod **ppv);
      HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode);
+     HRESULT SetMacOSBlur(AvnMacOSBlurMaterial material, AvnMacOSBlurState state, AvnMacOSBlurBlendingMode blendingMode);
      
      HRESULT GetCurrentDisplayId(uint* ret);
 }

@@ -62,6 +62,13 @@
     _blurBehind.hidden = !show;
 }
 
+-(void) UpdateBlurWithMaterial:(NSVisualEffectMaterial)material state:(NSVisualEffectState)state blending:(NSVisualEffectBlendingMode)blending
+{
+    _blurBehind.material = material;
+    _blurBehind.state = state;
+    _blurBehind.blendingMode = blending;
+}
+
 -(void) ShowTitleBar: (bool) show
 {
     _titleBarMaterial.hidden = !show;

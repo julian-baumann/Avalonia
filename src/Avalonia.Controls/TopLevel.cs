@@ -72,6 +72,24 @@ namespace Avalonia.Controls
             AvaloniaProperty.Register<TopLevel, IReadOnlyList<WindowTransparencyLevel>>(nameof(TransparencyLevelHint), Array.Empty<WindowTransparencyLevel>());
 
         /// <summary>
+        /// Defines the <see cref="MacOSVibrancyMaterial"/> property.
+        /// </summary>
+        public static readonly StyledProperty<MacOSVibrancyMaterial?> MacOSVibrancyMaterialProperty =
+            AvaloniaProperty.Register<TopLevel, MacOSVibrancyMaterial?>(nameof(MacOSVibrancyMaterial));
+
+        /// <summary>
+        /// Defines the <see cref="MacOSVibrancyState"/> property.
+        /// </summary>
+        public static readonly StyledProperty<MacOSVibrancyState> MacOSVibrancyStateProperty =
+            AvaloniaProperty.Register<TopLevel, MacOSVibrancyState>(nameof(MacOSVibrancyState), MacOSVibrancyState.FollowsWindowActiveState);
+
+        /// <summary>
+        /// Defines the <see cref="MacOSVibrancyBlendingMode"/> property.
+        /// </summary>
+        public static readonly StyledProperty<MacOSVibrancyBlendingMode> MacOSVibrancyBlendingModeProperty =
+            AvaloniaProperty.Register<TopLevel, MacOSVibrancyBlendingMode>(nameof(MacOSVibrancyBlendingMode), MacOSVibrancyBlendingMode.BehindWindow);
+
+        /// <summary>
         /// Defines the <see cref="ActualTransparencyLevel"/> property.
         /// </summary>
         public static readonly DirectProperty<TopLevel, WindowTransparencyLevel> ActualTransparencyLevelProperty =
@@ -245,12 +263,20 @@ namespace Avalonia.Controls
             impl.ScalingChanged = HandleScalingChanged;
             impl.TransparencyLevelChanged = HandleTransparencyLevelChanged;
 
-            CreatePlatformImplBinding(TransparencyLevelHintProperty, hint => PlatformImpl.SetTransparencyLevelHint(hint ?? Array.Empty<WindowTransparencyLevel>()));
+            CreatePlatformImplBinding(TransparencyLevelHintProperty, hint =>
+            {
+                PlatformImpl.SetTransparencyLevelHint(hint ?? Array.Empty<WindowTransparencyLevel>());
+                UpdateMacOSVibrancy();
+            });
             CreatePlatformImplBinding(ActualThemeVariantProperty, variant =>
             {
                 variant ??= ThemeVariant.Default;
                 PlatformImpl?.SetFrameThemeVariant((PlatformThemeVariant?)variant ?? PlatformThemeVariant.Light);
             });
+
+            CreatePlatformImplBinding(MacOSVibrancyMaterialProperty, _ => UpdateMacOSVibrancy());
+            CreatePlatformImplBinding(MacOSVibrancyStateProperty, _ => UpdateMacOSVibrancy());
+            CreatePlatformImplBinding(MacOSVibrancyBlendingModeProperty, _ => UpdateMacOSVibrancy());
 
             _keyboardNavigationHandler?.SetOwner(this);
             _accessKeyHandler?.SetOwner(this);
@@ -387,6 +413,33 @@ namespace Avalonia.Controls
         }
 
         /// <summary>
+        /// Gets or sets the vibrancy material hint for macOS platforms.
+        /// </summary>
+        public MacOSVibrancyMaterial? MacOSVibrancyMaterial
+        {
+            get => GetValue(MacOSVibrancyMaterialProperty);
+            set => SetValue(MacOSVibrancyMaterialProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the vibrancy state hint for macOS platforms.
+        /// </summary>
+        public MacOSVibrancyState MacOSVibrancyState
+        {
+            get => GetValue(MacOSVibrancyStateProperty);
+            set => SetValue(MacOSVibrancyStateProperty, value);
+        }
+
+        /// <summary>
+        /// Gets or sets the vibrancy blending mode hint for macOS platforms.
+        /// </summary>
+        public MacOSVibrancyBlendingMode MacOSVibrancyBlendingMode
+        {
+            get => GetValue(MacOSVibrancyBlendingModeProperty);
+            set => SetValue(MacOSVibrancyBlendingModeProperty, value);
+        }
+
+        /// <summary>
         /// Gets the achieved <see cref="WindowTransparencyLevel"/> that the platform was able to provide.
         /// </summary>
         public WindowTransparencyLevel ActualTransparencyLevel
@@ -469,6 +522,22 @@ namespace Avalonia.Controls
                 {
                     onValue(GetValue(property));
                 }
+            }
+        }
+
+        private void UpdateMacOSVibrancy()
+        {
+            if (PlatformImpl is null)
+            {
+                return;
+            }
+
+            if (PlatformImpl.TryGetFeature<IMacOSWindowVibrancy>() is { } vibrancy)
+            {
+                vibrancy.SetVibrancy(
+                    GetValue(MacOSVibrancyMaterialProperty),
+                    GetValue(MacOSVibrancyStateProperty),
+                    GetValue(MacOSVibrancyBlendingModeProperty));
             }
         }
 

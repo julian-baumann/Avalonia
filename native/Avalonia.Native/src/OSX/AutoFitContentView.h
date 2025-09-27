@@ -14,4 +14,5 @@
 -(void) SetTitleBarHeightHint: (double) height;
 
 -(void) ShowBlur: (bool) show;
+-(void) UpdateBlurWithMaterial:(NSVisualEffectMaterial)material state:(NSVisualEffectState)state blending:(NSVisualEffectBlendingMode)blending;
 @end

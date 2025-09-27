@@ -56,8 +56,10 @@ public:
     virtual HRESULT PointToClient(AvnPoint point, AvnPoint *ret) override;
 
     virtual HRESULT PointToScreen(AvnPoint point, AvnPoint *ret) override;
-     
+    
     virtual HRESULT SetTransparencyMode(AvnWindowTransparencyMode mode) override;
+
+    virtual HRESULT SetMacOSBlur(AvnMacOSBlurMaterial material, AvnMacOSBlurState state, AvnMacOSBlurBlendingMode blendingMode) override;
 
     virtual HRESULT GetCurrentDisplayId (CGDirectDisplayID* ret) override;
 protected:
